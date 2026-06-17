@@ -1,0 +1,10 @@
+# internal / not for the public site
+.DS_Store
+*.log
+.bc/
+node_modules/
+
+# old backups & internal docs
+*.zip
+screenshots/
+alwalid-dar-ecommerce-design-ar.md

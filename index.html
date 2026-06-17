@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>مكتبة دار الوليد — متجر الكتب</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+  <style>
+    /* الإدارة على الجوال: شريط جانبي أنحف */
+    @media (max-width:780px){
+      div[style*="grid-template-columns: 236px 1fr"]{ grid-template-columns:64px 1fr !important; }
+      div[style*="grid-template-columns: 236px 1fr"] aside img{ height:34px !important; }
+      div[style*="grid-template-columns: 236px 1fr"] aside span{ display:none !important; }
+      div[style*="grid-template-columns: minmax(0,1.4fr) minmax(0,1fr)"]{ grid-template-columns:1fr !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React (production builds) + Babel -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <!-- بيانات + حالة (JS عادي) -->
+  <script src="js/data.js"></script>
+  <script src="js/store.js"></script>
+
+  <!-- مكوّنات وصفحات (JSX) -->
+  <script type="text/babel" src="js/components.jsx"></script>
+  <script type="text/babel" src="js/chrome.jsx"></script>
+  <script type="text/babel" src="js/pages-shop.jsx"></script>
+  <script type="text/babel" src="js/pages-cart.jsx"></script>
+  <script type="text/babel" src="js/pages-checkout.jsx"></script>
+  <script type="text/babel" src="js/admin.jsx"></script>
+  <script type="text/babel" src="js/admin-books.jsx"></script>
+  <script type="text/babel" src="js/app.jsx"></script>
+</body>
+</html>
