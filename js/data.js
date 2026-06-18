@@ -25,10 +25,25 @@
   function regionById(id) { return REGIONS.find(r => r.id === id) || REGIONS[0]; }
 
   /* ---------------- الإعدادات ----------------
-     usdRate   = كم دينار ليبي يساوي 1 دولار (لتحويل أسعار الدولار).
      shipLibya = رسوم التوصيل داخل ليبيا (بالدينار).
      shipIntl  = رسوم الشحن الدولي خارج ليبيا (بالدولار). */
-  const SETTINGS = { usdRate: 5, shipLibya: 5, shipIntl: 25 };
+  const SETTINGS = { shipLibya: 5, shipIntl: 25 };
+  // قاسم افتراضي لتوليد سعر دولار مبدئي للبيانات التجريبية فقط (ليس حاسبة في الواجهة)
+  const DEFAULT_USD_DIVISOR = 5;
+
+  /* ---------------- الصلاحيات والمستخدمون (لوحة التحكم) ----------------
+     role 'super' = مدير عام (كل الصلاحيات + إدارة المستخدمين).
+     role 'admin' = صلاحيات محدّدة عبر perms. */
+  const PERMISSIONS = [
+    { id: 'dashboard', ar: 'اللوحة',       en: 'Dashboard' },
+    { id: 'books',     ar: 'الكتب',        en: 'Books' },
+    { id: 'orders',    ar: 'الطلبات',      en: 'Orders' },
+    { id: 'settings',  ar: 'الإعدادات',    en: 'Settings' },
+    { id: 'users',     ar: 'المستخدمون',   en: 'Users' },
+  ];
+  const USERS = [
+    { id: 'u-super', name: 'المدير العام', email: 'super@alwalid.ly', password: 'admin1234', role: 'super', perms: ['dashboard', 'books', 'orders', 'settings', 'users'], is_active: true },
+  ];
 
   /* ---------------- كشف موقع المستخدم ----------------
      كشف فوري بلا إنترنت اعتماداً على المنطقة الزمنية (طرابلس → ليبيا). */
@@ -231,7 +246,7 @@
     const defs = {
       subtitle_ar: '',
       image: '',
-      price_usd: convertFromLyd(b.base_price || 0, 'USD', SETTINGS.usdRate),
+      price_usd: Math.max(1, Math.round((b.base_price || 0) / DEFAULT_USD_DIVISOR)),
       translator_ar: isTrans ? (TRANSLATORS[b.id] || 'قسم الترجمة بدار الوليد') : '',
       language_ar: isTrans ? 'العربية (مترجمة عن لغتها الأصلية)' : 'العربية',
       format_ar: big ? 'غلاف مُجلّد' : 'غلاف ورقي',
@@ -268,15 +283,11 @@
   // السعر الأساسي بالدينار (يُستخدم في فلتر السعر بالكتالوج)
   function basePriceLyd(book) { return book.base_price; }
 
-  // سعر الكتاب بعملة المنطقة:
-  //  ليبيا → السعر بالدينار (base_price)
-  //  خارج ليبيا → السعر بالدولار الصريح (price_usd) إن وُجد، وإلا يُحوَّل من الدينار بسعر الصرف
-  function priceFor(book, region, rate) {
-    if (currencyOf(region) === 'USD') {
-      const usd = Number(book.price_usd);
-      return usd > 0 ? usd : convertFromLyd(book.base_price || 0, 'USD', rate);
-    }
-    return book.base_price;
+  // سعر الكتاب بعملة المنطقة (يُدخَل يدوياً):
+  //  ليبيا → السعر بالدينار (base_price) · خارج ليبيا → السعر بالدولار (price_usd)
+  function priceFor(book, region) {
+    if (currencyOf(region) === 'USD') return Number(book.price_usd) || 0;
+    return Number(book.base_price) || 0;
   }
 
   /* ---------------- الترجمة ---------------- */
@@ -320,7 +331,7 @@
   };
 
   w.WALID_DATA = {
-    CATEGORIES, REGIONS, BOOKS, SETTINGS, I18N, STORE_INFO,
+    CATEGORIES, REGIONS, BOOKS, SETTINGS, PERMISSIONS, USERS, I18N, STORE_INFO,
     priceFor, basePriceLyd, currencyOf, symbolFor, convertFromLyd, normalizeBook,
     regionById, detectRegionId, detectRegionByIP,
   };

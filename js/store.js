@@ -26,12 +26,15 @@
     regions: clone(D.REGIONS),
     categories: clone(D.CATEGORIES),
     settings: saved.settings || clone(D.SETTINGS),
-    admin: saved.admin || { authed: false },
+    users: saved.users || clone(D.USERS),       // مستخدمو لوحة التحكم
+    auth: saved.auth || { userId: null },        // المستخدم المسجَّل حالياً
     toast: null,
     orderSeq: saved.orderSeq || 43,
   };
   // إكمال أي إعدادات ناقصة من نسخة أقدم
   state.settings = Object.assign(clone(D.SETTINGS), state.settings);
+  // ضمان وجود مدير عام واحد على الأقل
+  if (!state.users.some(u => u.role === 'super')) state.users.unshift(clone(D.USERS)[0]);
 
   function clone(x) { return JSON.parse(JSON.stringify(x)); }
 
@@ -75,7 +78,7 @@
       localStorage.setItem(LS, JSON.stringify({
         lang: state.lang, region: state.region, regionLocked: state.regionLocked, cart: state.cart,
         orders: state.orders, books: state.books,
-        settings: state.settings, admin: state.admin, orderSeq: state.orderSeq,
+        settings: state.settings, users: state.users, auth: state.auth, orderSeq: state.orderSeq,
       }));
     } catch (e) {}
   }
@@ -84,7 +87,6 @@
   function t(key) { return (D.I18N[state.lang] && D.I18N[state.lang][key]) || key; }
   function book(id) { return state.books.find(b => b.id === id); }
   function category(id) { return state.categories.find(c => c.id === id); }
-  function rate() { return (state.settings && state.settings.usdRate) || 5; }
   // المنطقة النشطة (ليبيا / خارج ليبيا)
   function region() { return D.regionById(state.region); }
   function regionName(id) { const r = D.regionById(id || state.region); return state.lang === 'ar' ? r.name_ar : r.name_en; }
@@ -93,7 +95,17 @@
   // رمز عملة المنطقة النشطة (للعرض في الواجهة)
   function cur() { return D.symbolFor(activeCurrency(), state.lang); }
   // سعر الكتاب بعملة المنطقة النشطة
-  function priceFor(b) { return D.priceFor(b, region(), rate()); }
+  function priceFor(b) { return D.priceFor(b, region()); }
+  // ---- المستخدمون والصلاحيات ----
+  function currentUser() { return state.users.find(u => u.id === state.auth.userId) || null; }
+  function isAuthed() { return !!currentUser(); }
+  function isSuper() { const u = currentUser(); return !!u && u.role === 'super'; }
+  function can(section) {
+    const u = currentUser();
+    if (!u || u.is_active === false) return false;
+    if (u.role === 'super') return true;
+    return (u.perms || []).includes(section);
+  }
 
   function cartDetailed() {
     return state.cart.map(ci => {
@@ -235,11 +247,7 @@
       emit();
       return n;
     },
-    /* ----- الإعدادات (سعر الصرف + الشحن) ----- */
-    setUsdRate(v) {
-      const n = Number(v);
-      if (n > 0) { state.settings = { ...state.settings, usdRate: n }; emit(); }
-    },
+    /* ----- الإعدادات (الشحن) ----- */
     setShipLibya(v) {
       const n = Number(v);
       if (n >= 0) { state.settings = { ...state.settings, shipLibya: n }; emit(); }
@@ -248,12 +256,41 @@
       const n = Number(v);
       if (n >= 0) { state.settings = { ...state.settings, shipIntl: n }; emit(); }
     },
-    /* ----- إدارة ----- */
+    /* ----- الدخول / الخروج ----- */
     adminLogin(email, pass) {
-      if (email && pass && pass.length >= 4) { state.admin = { authed: true, email }; emit(); return true; }
+      const e = String(email || '').trim().toLowerCase();
+      const u = state.users.find(x => x.email.toLowerCase() === e && x.password === pass && x.is_active !== false);
+      if (u) { state.auth = { userId: u.id }; emit(); return true; }
       return false;
     },
-    adminLogout() { state.admin = { authed: false }; emit(); },
+    adminLogout() { state.auth = { userId: null }; emit(); },
+    /* ----- إدارة المستخدمين (للمدير العام فقط) ----- */
+    saveUser(data) {
+      const e = String(data.email || '').trim().toLowerCase();
+      const dup = state.users.find(u => u.email.toLowerCase() === e && u.id !== data.id);
+      if (dup) { actions.toast(state.lang === 'ar' ? 'البريد مستخدم مسبقاً' : 'Email already exists'); return false; }
+      if (data.id && state.users.find(u => u.id === data.id)) {
+        const u = state.users.find(x => x.id === data.id);
+        Object.assign(u, data);
+        if (u.role === 'super') u.perms = D.PERMISSIONS.map(p => p.id);   // المدير العام يملك كل الصلاحيات
+      } else {
+        const u = { id: 'u-' + Date.now(), is_active: true, role: 'admin', perms: [], ...data };
+        if (u.role === 'super') u.perms = D.PERMISSIONS.map(p => p.id);
+        state.users.push(u);
+      }
+      emit();
+      return true;
+    },
+    deleteUser(id) {
+      const u = state.users.find(x => x.id === id);
+      if (!u) return;
+      if (id === state.auth.userId) { actions.toast(state.lang === 'ar' ? 'لا يمكن حذف حسابك الحالي' : "Can't delete your own account"); return; }
+      if (u.role === 'super' && state.users.filter(x => x.role === 'super').length <= 1) {
+        actions.toast(state.lang === 'ar' ? 'يجب بقاء مدير عام واحد على الأقل' : 'At least one super admin required'); return;
+      }
+      state.users = state.users.filter(x => x.id !== id);
+      emit();
+    },
     resetAll() { localStorage.removeItem(LS); location.reload(); },
   };
 
@@ -291,7 +328,8 @@
     }, []);
     return {
       state, t, book, category, priceFor,
-      rate, region, regionName, isLibya, activeCurrency, cur,
+      region, regionName, isLibya, activeCurrency, cur,
+      currentUser, isAuthed, isSuper, can,
       cartDetailed, cartCount, cartSubtotal, shipping, cartTotal,
       buildWhatsappText, whatsappURL, ...actions,
     };

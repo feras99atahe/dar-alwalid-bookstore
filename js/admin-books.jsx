@@ -54,7 +54,7 @@ function AdminBooks({ store, openBookForm }) {
                       </td>
                       <td style={{ padding: '10px 16px', fontSize: '.85rem' }}><span className="badge-soft badge">{cat?.name_ar}</span></td>
                       <td style={{ padding: '10px 16px' }}><b className="tnum">{b.base_price}</b> <span className="muted" style={{ fontSize: '.75rem' }}>د.ل</span>
-                        <div className="tnum" style={{ fontSize: '.68rem', color: 'var(--info)', fontWeight: 700 }} dir="ltr">{Number(b.price_usd) > 0 ? b.price_usd : WALID_DATA.convertFromLyd(b.base_price, 'USD', (state.settings && state.settings.usdRate) || 5)} $</div>
+                        <div className="tnum" style={{ fontSize: '.68rem', color: 'var(--info)', fontWeight: 700 }} dir="ltr">{b.price_usd} $</div>
                       </td>
                       <td style={{ padding: '10px 16px' }}><span className="tnum" style={{ fontWeight: 700, color: b.stock <= 0 ? 'var(--danger)' : b.stock < 5 ? 'var(--amber)' : 'var(--ink)' }}>{b.stock}</span></td>
                       <td style={{ padding: '10px 16px' }}>
@@ -84,7 +84,6 @@ function BookFormModal({ store, editing, onClose }) {
   const { state, saveBook } = store;
   const isAr = state.lang === 'ar';
   const cats = state.categories;
-  const usdRate = (state.settings && state.settings.usdRate) || 5;
   const [f, setF] = useState(() => editing ? { ...editing } : {
     title_ar: '', title_en: '', subtitle_ar: '', author_ar: '', author_en: '', cat: cats[0].id, desc_ar: '',
     isbn: '', year: 2024, pages: 100, base_price: 30, price_usd: 6, stock: 10, cover: 'cv-maroon', image: '', pub: 'AlWalid',
@@ -169,9 +168,7 @@ function BookFormModal({ store, editing, onClose }) {
               <div className={`field ${errors.base_price ? 'field-error' : ''}`}><label>{isAr ? 'السعر داخل ليبيا (د.ل)' : 'Price in Libya (LYD)'} <span className="req">*</span></label><input className="input tnum" type="number" min="0" value={f.base_price} onChange={e => set('base_price', e.target.value)} />
                 {errors.base_price && <span className="err-msg">{errors.base_price}</span>}
               </div>
-              <div className="field"><label>{isAr ? 'السعر خارج ليبيا ($)' : 'Price outside Libya ($)'}</label><input className="input tnum" type="number" min="0" step="0.5" value={f.price_usd} onChange={e => set('price_usd', e.target.value)} />
-                <button type="button" className="btn btn-quiet btn-sm" style={{ paddingInline: 0, color: 'var(--brand)', alignSelf: 'flex-start' }} onClick={() => set('price_usd', WALID_DATA.convertFromLyd(Number(f.base_price) || 0, 'USD', usdRate))}>{isAr ? `احسب من الدينار (÷${usdRate})` : `From LYD (÷${usdRate})`}</button>
-              </div>
+              <div className="field"><label>{isAr ? 'السعر خارج ليبيا ($)' : 'Price outside Libya ($)'}</label><input className="input tnum" type="number" min="0" step="0.5" value={f.price_usd} onChange={e => set('price_usd', e.target.value)} /></div>
               <div className="field"><label>{isAr ? 'المخزون' : 'Stock'}</label><input className="input tnum" type="number" min="0" value={f.stock} onChange={e => set('stock', e.target.value)} /></div>
               <div className="field"><label>ISBN</label><input className="input tnum" value={f.isbn} onChange={e => set('isbn', e.target.value)} dir="ltr" /></div>
               <div className="field"><label>{isAr ? 'سنة النشر' : 'Year'}</label><input className="input tnum" type="number" value={f.year} onChange={e => set('year', e.target.value)} /></div>
@@ -410,32 +407,16 @@ function BulkImportModal({ store, onClose }) {
   );
 }
 
-/* ---------------- الإعدادات — سعر الصرف + الشحن ---------------- */
+/* ---------------- الإعدادات — رسوم الشحن ---------------- */
 function AdminSettings({ store }) {
-  const { state, setUsdRate, setShipLibya, setShipIntl } = store;
+  const { state, setShipLibya, setShipIntl } = store;
   const isAr = state.lang === 'ar';
-  const current = (state.settings && state.settings.usdRate) || 5;
-  const [val, setVal] = useState(String(current));
-  const [saved, setSaved] = useState(false);
   const [shipLy, setShipLy] = useState(String(state.settings.shipLibya ?? 5));
   const [shipUsd, setShipUsd] = useState(String(state.settings.shipIntl ?? 25));
   const [shipSaved, setShipSaved] = useState(false);
 
-  useEffect(() => { setVal(String(current)); }, [current]);
   useEffect(() => { setShipLy(String(state.settings.shipLibya ?? 5)); setShipUsd(String(state.settings.shipIntl ?? 25)); }, [state.settings.shipLibya, state.settings.shipIntl]);
 
-  const num = Number(val);
-  const valid = num > 0;
-  const samples = [25, 35, 45, 60];
-
-  function save(e) {
-    e.preventDefault();
-    if (!valid) return;
-    setUsdRate(num);
-    store.toast(isAr ? 'تم حفظ سعر الصرف ✓' : 'Exchange rate saved ✓');
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1800);
-  }
   function saveShip(e) {
     e.preventDefault();
     if (Number(shipLy) < 0 || Number(shipUsd) < 0) return;
@@ -447,30 +428,8 @@ function AdminSettings({ store }) {
 
   return (
     <div>
-      <AdminHeader title={isAr ? 'الإعدادات' : 'Settings'} sub={isAr ? 'سعر صرف العملة للطلبات خارج ليبيا' : 'Currency exchange rate for orders outside Libya'} />
+      <AdminHeader title={isAr ? 'الإعدادات' : 'Settings'} sub={isAr ? 'رسوم التوصيل داخل ليبيا وخارجها' : 'Delivery fees inside and outside Libya'} />
       <div style={{ padding: 'clamp(20px,3vw,32px)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 22, alignItems: 'start' }}>
-        {/* محرّر سعر الصرف */}
-        <form onSubmit={save} className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <h3 className="row" style={{ gap: 9, fontSize: '1.1rem' }}><Ic.coins style={{ width: 20, height: 20, color: 'var(--brand)' }} /> {isAr ? 'سعر الصرف' : 'Exchange rate'}</h3>
-          <p className="muted" style={{ fontSize: '.88rem', lineHeight: 1.7 }}>
-            {isAr
-              ? 'الأسعار داخل ليبيا بالدينار الليبي. للطلبات من «خارج ليبيا» تظهر الأسعار بالدولار، وتُحسب بقسمة السعر بالدينار على هذا الرقم.'
-              : 'Prices inside Libya are in LYD. For “outside Libya” orders, prices show in USD, computed by dividing the LYD price by this number.'}
-          </p>
-          <div className="field">
-            <label>{isAr ? 'كم دينار ليبي يساوي 1 دولار؟' : 'How many LYD per 1 USD?'} <span className="req">*</span></label>
-            <div className="row" style={{ gap: 10, alignItems: 'center' }}>
-              <span style={{ fontWeight: 800, color: 'var(--info)' }}>1 $ =</span>
-              <input className="input tnum" type="number" min="0.1" step="0.1" value={val} onChange={e => { setVal(e.target.value); setSaved(false); }} style={{ maxWidth: 140 }} />
-              <span style={{ fontWeight: 800, color: 'var(--brand)' }}>{isAr ? 'د.ل' : 'LYD'}</span>
-            </div>
-            {!valid && <span className="err-msg">{isAr ? 'أدخل رقماً أكبر من صفر' : 'Enter a number greater than 0'}</span>}
-          </div>
-          <button type="submit" className="btn btn-primary" disabled={!valid}>
-            {saved ? <><Ic.check style={{ width: 17, height: 17 }} /> {isAr ? 'تم الحفظ' : 'Saved'}</> : (isAr ? 'حفظ' : 'Save')}
-          </button>
-        </form>
-
         {/* رسوم التوصيل */}
         <form onSubmit={saveShip} className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <h3 className="row" style={{ gap: 9, fontSize: '1.1rem' }}><Ic.truck style={{ width: 20, height: 20, color: 'var(--brand)' }} /> {isAr ? 'رسوم التوصيل' : 'Shipping fees'}</h3>
@@ -496,27 +455,14 @@ function AdminSettings({ store }) {
           </button>
         </form>
 
-        {/* معاينة التحويل */}
-        <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <h3 style={{ fontSize: '1.1rem' }}>{isAr ? 'معاينة التحويل' : 'Conversion preview'}</h3>
-          <p className="muted" style={{ fontSize: '.84rem' }}>{isAr ? `حسب السعر الحالي: 1 دولار = ${valid ? num : current} د.ل` : `At current rate: 1 USD = ${valid ? num : current} LYD`}</p>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ textAlign: isAr ? 'right' : 'left' }}>
-                <th style={{ padding: '8px 10px', fontSize: '.78rem', color: 'var(--muted)', fontWeight: 700 }}>{isAr ? 'السعر بالدينار' : 'LYD price'}</th>
-                <th style={{ padding: '8px 10px', fontSize: '.78rem', color: 'var(--muted)', fontWeight: 700 }}>{isAr ? 'يظهر خارج ليبيا' : 'Shows outside Libya'}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {samples.map(s => (
-                <tr key={s} style={{ borderTop: '1px solid var(--line-soft)' }}>
-                  <td style={{ padding: '9px 10px' }}><b className="tnum">{s}</b> <span className="muted" style={{ fontSize: '.75rem' }}>د.ل</span></td>
-                  <td style={{ padding: '9px 10px' }}><b className="tnum" style={{ color: 'var(--info)' }}>{WALID_DATA.convertFromLyd(s, 'USD', valid ? num : current)} $</b></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="hint">{isAr ? 'يُقرَّب سعر الدولار لأقرب رقم صحيح.' : 'USD prices are rounded to the nearest whole number.'}</p>
+        {/* ملاحظة الأسعار */}
+        <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <h3 className="row" style={{ gap: 9, fontSize: '1.1rem' }}><Ic.coins style={{ width: 20, height: 20, color: 'var(--brand)' }} /> {isAr ? 'الأسعار' : 'Prices'}</h3>
+          <p className="muted" style={{ fontSize: '.9rem', lineHeight: 1.8 }}>
+            {isAr
+              ? 'تُدخَل أسعار الكتب يدوياً بعملتين من شاشة «الكتب»: سعر داخل ليبيا بالدينار (د.ل) وسعر خارج ليبيا بالدولار ($). لا يوجد تحويل تلقائي.'
+              : 'Book prices are entered manually in two currencies from the “Books” screen: a Libya price in LYD (د.ل) and an outside-Libya price in USD ($). No automatic conversion.'}
+          </p>
         </div>
       </div>
     </div>

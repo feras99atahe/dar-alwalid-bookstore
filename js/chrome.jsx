@@ -51,7 +51,6 @@ function Header({ store, route, nav }) {
             <Ic.cart style={{ width: 20, height: 20 }} />
             {cartCount() > 0 && <span className="tnum" style={{ position: 'absolute', insetBlockStart: -4, insetInlineEnd: -4, background: 'var(--brand)', color: '#fff', fontSize: '.68rem', fontWeight: 800, minWidth: 19, height: 19, borderRadius: 99, display: 'grid', placeItems: 'center', padding: '0 4px' }}>{cartCount()}</span>}
           </button>
-          <button className="btn btn-soft hide-mobile" onClick={() => nav('admin')}><Ic.dash style={{ width: 17, height: 17 }} /> {t('admin')}</button>
           <button className="btn btn-ghost show-mobile" style={{ padding: '.7em', borderRadius: 'var(--r-pill)' }} onClick={() => setMobileOpen(true)}><Ic.menu style={{ width: 20, height: 20 }} /></button>
         </div>
       </div>
@@ -80,8 +79,6 @@ function Header({ store, route, nav }) {
             {navItems.concat(state.categories.map(c => ({ id: 'catalog', cat: c.id, label: isAr ? c.name_ar : c.name_en }))).map((n, i) => (
               <button key={i} onClick={() => { nav(n.id, n.cat ? { cat: n.cat } : {}); setMobileOpen(false); }} style={{ all: 'unset', cursor: 'pointer', padding: '10px 6px', fontWeight: 700, color: 'var(--ink)' }}>{n.label}</button>
             ))}
-            <hr className="divider" />
-            <button className="btn btn-soft btn-block" onClick={() => { nav('admin'); setMobileOpen(false); }}><Ic.dash style={{ width: 17, height: 17 }} /> {t('admin')}</button>
           </div>
         </div>
       )}

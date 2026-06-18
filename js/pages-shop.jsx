@@ -99,20 +99,6 @@ function HomePage({ store, nav }) {
         </div>
       </section>
 
-      {/* بانر التسعير حسب الموقع */}
-      <section className="container">
-        <div style={{ background: 'var(--brand)', color: '#fff', borderRadius: 'var(--r-xl)', padding: 'clamp(24px,4vw,44px)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 24, alignItems: 'center', boxShadow: 'var(--sh-brand)' }}>
-          <div>
-            <span className="eyebrow" style={{ color: 'var(--amber-tint)' }}>{isAr ? 'ميزة دار الوليد' : 'Dar AlWalid feature'}</span>
-            <h2 style={{ color: '#fff', fontSize: 'clamp(1.4rem,2.6vw,2rem)', marginTop: 8 }}>{isAr ? 'السعر بعملة موقعك' : 'Priced in your local currency'}</h2>
-            <p style={{ opacity: .9, marginTop: 8, maxWidth: 440 }}>{isAr ? 'نتعرّف على موقعك تلقائياً: داخل ليبيا بالدينار الليبي، وخارجها بالدولار الأمريكي — بلا مفاجآت عند الطلب.' : 'We detect your location automatically: Libyan Dinar inside Libya, US Dollar elsewhere — no surprises at checkout.'}</p>
-          </div>
-          <div style={{ justifySelf: 'end' }}>
-            <button className="btn btn-amber btn-lg" onClick={() => nav('catalog')}>{isAr ? 'ابدأ التصفّح' : 'Start browsing'}</button>
-          </div>
-        </div>
-      </section>
-
       {/* الأكثر مبيعاً */}
       {best.length > 0 && (
         <section className="section container">

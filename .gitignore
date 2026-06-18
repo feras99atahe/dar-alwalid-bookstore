@@ -3,6 +3,7 @@
 *.log
 .bc/
 node_modules/
+publish/
 
 # old backups & internal docs
 *.zip

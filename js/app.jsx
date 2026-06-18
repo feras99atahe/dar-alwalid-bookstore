@@ -3,23 +3,26 @@
    ========================================================= */
 
 function AdminApp({ store, nav }) {
-  const { state } = store;
   const [section, setSection] = useState('dashboard');
   const [bookForm, setBookForm] = useState(undefined); // undefined=closed, null=new, obj=edit
-  const isAr = state.lang === 'ar';
 
-  if (!state.admin.authed) return <AdminLogin store={store} nav={nav} />;
+  if (!store.isAuthed()) return <AdminLogin store={store} nav={nav} />;
+
+  // القسم الفعّال = المطلوب إن كان مسموحاً، وإلا أول قسم متاح للمستخدم
+  const allowed = ['dashboard', 'books', 'orders', 'settings', 'users'].filter(s => store.can(s));
+  const sec = allowed.includes(section) ? section : (allowed[0] || 'dashboard');
 
   const openBookForm = (b) => setBookForm(b);
   const closeBookForm = () => setBookForm(undefined);
 
   return (
-    <AdminLayout store={store} nav={nav} section={section} setSection={setSection}>
-      {section === 'dashboard' && <AdminDashboard store={store} setSection={setSection} openBookForm={openBookForm} />}
-      {section === 'books' && <AdminBooks store={store} openBookForm={openBookForm} />}
-      {section === 'orders' && <AdminOrders store={store} />}
-      {section === 'settings' && <AdminSettings store={store} />}
-      {bookForm !== undefined && <BookFormModal store={store} editing={bookForm} onClose={closeBookForm} />}
+    <AdminLayout store={store} nav={nav} section={sec} setSection={setSection}>
+      {sec === 'dashboard' && <AdminDashboard store={store} setSection={setSection} openBookForm={openBookForm} />}
+      {sec === 'books' && <AdminBooks store={store} openBookForm={openBookForm} />}
+      {sec === 'orders' && <AdminOrders store={store} />}
+      {sec === 'settings' && <AdminSettings store={store} />}
+      {sec === 'users' && <AdminUsers store={store} />}
+      {bookForm !== undefined && store.can('books') && <BookFormModal store={store} editing={bookForm} onClose={closeBookForm} />}
     </AdminLayout>
   );
 }
@@ -51,7 +54,7 @@ function App() {
   // كشف موقع المستخدم تلقائياً عبر IP عند أول تحميل (لا يتجاوز اختياره اليدوي)
   useEffect(() => { store.autoDetectRegion(); }, []);
 
-  const isAdmin = route.name === 'admin';
+  const isAdmin = route.name === 'admin' || route.name === 'dashboard';
 
   // صفحات المتجر مع الهيكل
   if (isAdmin) {
